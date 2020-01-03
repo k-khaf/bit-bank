@@ -10,4 +10,6 @@ git commit <commit>
 associate our local branch with a remote one
 git push -u origin HEAD:hugarian
 
+WRONG
+
 
