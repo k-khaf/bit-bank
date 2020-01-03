@@ -1,0 +1,13 @@
+Clone a repo:
+git clone https://github.com/k-khaf/bit-bank.git
+
+Add a file to git for tracking
+git add <filename>
+
+commit a file
+git commit <commit>
+
+associate our local branch with a remote one
+git push -u origin HEAD:hugarian
+
+

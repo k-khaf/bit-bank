@@ -1,8 +1,0 @@
-this is a test file contents
-
-And here is something new..
-
-As requested by Mehdi, I am adding this
-
-And This
-And This ++
