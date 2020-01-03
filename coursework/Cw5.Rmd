@@ -1,0 +1,269 @@
+---
+title: "OPT Cw5"
+output: html_document
+author: Kian Khaffajian
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# NEW COMMENT!!
+
+```
+
+The following are various inputs that can be tested with my Hungarian() function, two of which have been taken from the notes and one found online. Each row represents a person and each column a job, with each cell containing the cost of a person doing that job.
+
+NB - If you get decide to a test a matrix and you get an error message just run the function again.
+```{r}
+M <- matrix(c(7,5,8,2,7,8,9,4,3,5,7,9,5,5,6,7),byrow = TRUE, nrow=4)
+rownames(M) <- c("1","2","3","4")
+colnames(M) <- c("A","B","C","D")
+print("M = ")
+M
+
+
+Q <- matrix(c(2,3,4,3,6,4,5,7,8),byrow = TRUE, nrow=3)
+rownames(Q) <- c("1","2","3")
+colnames(Q) <- c("A","B","C")
+print("Q = ")
+Q
+
+
+E <- matrix(c(82,83,69,92,77,37,49,92,11,69,5,86,8,9,98,23),byrow = TRUE, nrow=4)
+rownames(E) <- c("1","2","3","4")
+colnames(E) <- c("A","B","C","D")
+print("E = ")
+E
+```
+
+
+
+My function should be able to take any $(n \times n)$ matrix such that a solution exists and is unique.  Over time I may develop the function further so that it can recognize a no solution case or multiple solutions.  
+
+I have implemented my own ways of executing certain steps which I think is important to explain:
+
+Step 1 and 2 were straight forward so I won't elaborate on these.
+
+Step 3 required some more thought.  Essentially, the code identifies the row or column with the greatest amount of 0s and looks to 'eliminate' said row/col by means of replacing it with a tax of 1000.  If the max value of 0 is equal in any column or row, it chooses one at random to perform the operation to.  As well as 'covering' the row/col it also it records which row/col is being removed in a matrix ('tab') which contains the index in the first column and a "R"/"C" in the second to represent whether it was a row or column.  This is all contained in a while loop until there are no 0s present.  At this stage we pass through an if statement which will take us to the solution (this is solved by my recursive function below, solve()) if the number of iterations required to eliminate all 0s is equal to the number of rows of our input matrix, else we go to step 4.
+
+Step 4 was also relatively straight forward - it identifies the minimum value from the resultant matrix from step 3 and performs the necessary operations from Hungarian algorithm.  It also uses the aforementioned storage matrix ('tab') to see what has and hasn't been covered.  At the end of this we go back to step 3 since both steps are contained in a while loop until the number of iterations required to cover all the 0s = n.
+```{r}
+Hungarian <- function(M)
+{
+  n <- nrow(M)
+  
+  # Step 1: subtract minimal value of the row from every element
+  for (i in 1:n)
+  {
+    minValue1 <- min(M[i,])
+    M[i,] <- M[i,] - minValue1
+  }
+  
+  
+  # Step 2: subtract minimal value of the column for every element
+    for (j in 1:n)
+  {
+    minValue2 <- min(M[,j])
+    M[,j] <- M[,j] - minValue2
+  }
+  M
+  
+  
+  # Step 3: By drawing only full-length horizontal or vertical lines, attempt to ‘cover’ all the
+  #         zeroes in the matrix using as few lines as possible. If n lines are required, then a
+  #         solution of cost 0 currently exists – find it and stop.
+ 
+  # We take M and are left with a covered matrix, D  
+  
+  iter <- 1
+  while ((iter-1) < n) # Loops until the number of lines needed in step 3 = n
+  {
+    D <- M
+  
+    colnames(D) <- rownames(M)
+    
+    tab <- matrix(NA, nrow = 100, ncol =2) # stores which rows/cols get deleted
+    
+    iter <- 1
+    
+    while (any(D == 0))
+    {
+      store1 <- c()
+      for (i in 1:n)
+      {
+        store1[i] <- sum(D[i,]==0) # Counts number of 0s in each row and stores in vector
+      }
+      
+      store2 <- c()
+      for (j in 1:n)
+      {
+        store2[j] <- sum(D[,j]==0) # Counts number of 0s in each column and stores in vector
+      }
+      
+      if (max(store1) > max(store2)) # Delete row case
+      {
+        del1 <- which.max(store1)
+      
+        rownames1 <- rownames(D)
+        tab[iter,] <- c(as.numeric(rownames1[del1]),"R") # Uses row names to to store in tab
+        
+        D[del1,] <- 1000
+      }
+      else if (max(store1) < max(store2)) # Delete column case
+      {
+        del2 <- which.max(store2)
+        
+        colnames1 <- colnames(D)
+        tab[iter,] <- c(as.numeric(colnames1[del2]),"C") # Uses col index to to store in tab
+        
+        D[,del2] <- 1000
+      }
+      else # Random deletion for equality case
+      {
+        random <- c("R","C")
+        choose <- sample(random,1) # Chooses row/col to delete
+  
+        if (choose == "R") # Delete row
+        {
+          del3 <- which.max(store1)
+          
+          rownames1 <- rownames(D)
+          tab[iter,] <- c(as.numeric(rownames1[del3]),"R") # Uses row names to to store in tab
+          
+          D[del3,] <- 1000
+        }
+        else # Delete col
+        {
+          del4 <- which.max(store2)
+            
+          colnames1 <- colnames(D)
+          tab[iter,] <- c(as.numeric(colnames1[del4]),"C") # Uses col index to to store in tab
+            
+          D[,del4] <- 1000
+        }
+      }
+      iter <- iter + 1
+    }
+    D  # At this point we have the covered matrix D
+    
+  
+    if ((iter-1) == n) # no. line = n case, i.e. find solution
+    {
+      soln <- solve(M,0,0)
+    }
+    
+    # Step 4: Otherwise, draw on the lines from Step 3, and find the smallest non-zero element
+    #         (call its value k) which is not covered. Now subtract k from every uncovered row,
+    #         and add to every covered column. Then return to Step 3.
+    else 
+    {
+      k <- min(D)
+      
+      tab1 <- tab[-iter:-100,] 
+      
+      V <- seq(1:n) # List of all rows
+      S <- c()
+      q <- 1
+      
+      for (i in 1:nrow(tab1))
+      {
+        if ((tab1[i,2]) == "R")
+        {
+          S[q] <- as.numeric(tab1[i,1]) # Stores covered rows
+          q <- q +1
+        }
+      }
+      S_uncovered <- V[is.na(pmatch(V,S))] # Stores uncovered rows
+      
+      # Subtract k from each uncovered row 
+      for (l in 1:length(S_uncovered))
+      {
+        p <- S_uncovered[l]
+        M[p,] <- M[p,] - k
+      }
+    
+      # Add k to each covered column
+      for (j in 1:nrow(tab1))
+      {
+        if (tab1[j,2] == "C")
+        {
+          m <- as.numeric(tab1[j,1])
+          M[,m] <- M[,m] + k
+        }
+      }
+    }
+    M
+  }
+  return(soln)
+}
+```
+
+
+solve() is a recursive function which inputs M, pivotRow and pivotCol and outputs a matrix containing which person is assigned to certain task.  When the function is initially called the latter two entries are 0. This is how the function works:
+It stores the person-job allocation for the left most 0 on each row, and with that stores which jobs have been taken in 'seen'.  If it gets to a person-job allocation where there is a clash in the jobs (i.e the job we're inspecting is an element of seen) then it will continue to go through each job for that person until it finds a match.  If it gets to the last column and no match has been made, then function is called again.  This time pivotRow and pivotCol take the values i and j such that i is the row (person) we were at and j is the index for the job where the clash occurred.  These values are accounted for accordingly in the function, which continues on to return an augmented allocation of rows 1:i-1.  We break out of this stack and continue to input the values in the storage matrix for person i and the no-longer clashing job j.
+```{r}
+solve <- function(M,pivotRow,pivotCol)
+{
+  store3 <- matrix(0,nrow=nrow(M),ncol=2) # Empty storage matrix to input soltion
+  seen <- c() # Check matrix to see if job j has been taken
+  
+  colnames2 <- colnames(M)
+  rownames2 <- rownames(M)
+  
+  n4 <- ncol(M)
+  if (pivotRow > 0) # Populates seen when the function gets recalled and n becomes 1 less than the no. rows
+  {
+    n3 <- pivotRow - 1
+    seen[1] <- colnames2[pivotCol]
+  }
+  else  # Populates seen on the base stack as well as the intial n for the rows
+  {
+    n3 <- nrow(M)
+    seen[1] <- 0
+  }
+  
+  for (i in 1:n3)
+  {
+    for (j in 1:n4)
+    {
+      if (M[i,j] == 0)
+      {
+        if (any(seen == colnames2[j])) # Criteria to show if the job we're looking at has been taken
+        {
+          pivotCol <- j # Job j used as a pivot when funciton is recalled
+        }
+        else  # Populates store3 and seen when there are no collisions
+        {
+          store3[i,] <- c(rownames2[i],colnames2[j]) 
+          seen[i+1] <- colnames2[j]
+          
+          break #  Goes to next row
+        }
+      }
+      else if (j == n4) # If no other entries in row are 0 after job collision then funciton gets recalled
+      {
+        pivotRow <- i 
+        input <- solve(M,pivotRow,pivotCol)
+        
+        store3 <- input
+        store3[i,] <- c(rownames2[i],colnames2[pivotCol])
+      }
+    }
+  }
+  return(store3)
+}
+```
+
+
+
+Here is the output from my function when tested with the previously stated matrices.
+```{r}
+message("Here is the optimum allocation for matrix M: ")
+Hungarian(M)
+
+message("Here is the optimum allocation for matrix Q: ")
+Hungarian(Q)
+
+message("Here is the optimum allocation for matrix E: ")
+Hungarian(E)
+```
