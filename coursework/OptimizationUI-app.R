@@ -221,7 +221,7 @@ ui <- fluidPage(
 
 server <- function(input, output, session) {
   
-  # Check error contions are valid 
+  # Check error conditions are valid 
   observeEvent(input$checkBut, {
     store <<- NULL
     for (i in 1:12){
